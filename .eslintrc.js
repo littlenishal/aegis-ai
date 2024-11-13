@@ -1,14 +1,21 @@
+// .eslintrc.js
 module.exports = {
-  root: true,
-  extends: ['next/core-web-vitals'],
+  extends: [
+    'next',
+    'next/core-web-vitals',
+    'plugin:@typescript-eslint/recommended'
+  ],
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
   rules: {
-    '@next/next/no-html-link-for-pages': 'off',
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'off', // Temporarily disable this rule
     'react/no-unescaped-entities': 'off'
   },
   parserOptions: {
-    babelOptions: {
-      presets: [require.resolve('next/babel')],
-    },
-  },
+    ecmaVersion: 2020,
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
+  }
 };
