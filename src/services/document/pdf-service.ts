@@ -117,13 +117,17 @@ export class PDFService {
   }
 
   private shouldCreateNewSection(
-    item: { y: number; fontSize: number },
     lastY: number | null,
-    lastFontSize: number | null
+    lastFontSize: number | null,
+    itemY: number,
+    itemFontSize: number
   ): boolean {
-    return lastY !== null && 
-      (Math.abs(item.y - lastY) > 20 || 
-       (lastFontSize && item.fontSize > lastFontSize * 1.2));
+    if (lastY !== null) {
+      // Explicitly check if lastFontSize is not null before using it.
+      return (Math.abs(itemY - lastY) > 20 || (lastFontSize !== null && itemFontSize > lastFontSize * 1.2));
+    } else {
+      return false;
+    }
   }
 
   private addTextToSection(
