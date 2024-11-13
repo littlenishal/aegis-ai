@@ -1,11 +1,12 @@
-// src/services/document/pdf-service.ts
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
-import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
+import { TextItem } from 'pdfjs-dist/types/src/display/api';
 import { DocumentAnalysis, DocumentSection } from '@/types/document';
 
-// Initialize PDF.js worker
+// Initialize PDF.js worker only on client side
 if (typeof window !== 'undefined') {
-  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+  const pdfjsVersion = '3.11.174'; // Use the version that matches your pdfjs-dist version
+  GlobalWorkerOptions.workerSrc = 
+    `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
 }
 
 interface PDFTextItem extends TextItem {
@@ -20,6 +21,10 @@ interface PDFPageContent {
 
 export class PDFService {
   async analyzePDF(file: File): Promise<DocumentAnalysis> {
+    if (typeof window === 'undefined') {
+      throw new Error('PDF analysis is only available in browser environment');
+    }
+    
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await getDocument({ data: arrayBuffer }).promise;
