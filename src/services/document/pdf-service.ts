@@ -1,64 +1,140 @@
-import { DocumentAnalysis, DocumentSection } from "@/types/document";
+// src/services/document/pdf-service.ts
+import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
 import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
+import { DocumentAnalysis, DocumentSection } from '@/types/document';
+
+// Initialize PDF.js worker
+if (typeof window !== 'undefined') {
+  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+}
+
+interface PDFTextItem extends TextItem {
+  str: string;
+  transform: number[];
+}
+
+interface PDFPageContent {
+  items: PDFTextItem[];
+  styles?: Record<string, any>;
+}
 
 export class PDFService {
   async analyzePDF(file: File): Promise<DocumentAnalysis> {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await getDocument({ data: arrayBuffer }).promise;
 
-    const sections: DocumentSection[] = [];
-    const totalPages = pdf.numPages;
+      const sections: DocumentSection[] = [];
+      const totalPages = pdf.numPages;
 
-    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const content = await page.getTextContent();
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const content = await page.getTextContent() as PDFPageContent;
 
-      // Process text content into structured sections
-      interface PDFTextItem extends TextItem {
-        str: string;
-        transform: number[];
-      }
-      const textItems = content.items.map((item: PDFTextItem) => ({
-        text: item.str,
-        y: item.transform[5],
-      }));
+        // Process text content into structured sections
+        const textItems = content.items.map((item: PDFTextItem) => ({
+          text: item.str,
+          y: item.transform[5], // Vertical position
+          x: item.transform[4], // Horizontal position
+          fontSize: content.styles?.[item.fontName]?.fontSize || 12,
+        }));
 
-      // Group text into sections based on positioning and content
-      let currentSection: DocumentSection = {
-        type: "paragraph",
-        content: "",
-        pageNumber: pageNum,
-      };
-
-      textItems.forEach((item: any) => {
-        if (item.text.trim()) {
-          if (currentSection.content) {
-            currentSection.content += " ";
+        // Group text into sections based on vertical spacing and font size
+        let currentSection: DocumentSection = {
+          type: 'paragraph',
+          content: '',
+          pageNumber: pageNum,
+          boundingBox: {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
           }
-          currentSection.content += item.text;
-        } else if (currentSection.content) {
+        };
+
+        let lastY: number | null = null;
+        let lastFontSize: number | null = null;
+
+        textItems.forEach((item) => {
+          // Detect section type based on font size and position
+          const isNewSection = lastY !== null && 
+            (Math.abs(item.y - lastY) > 20 || // New line
+             (lastFontSize && item.fontSize > lastFontSize * 1.2)); // Larger font
+
+          if (isNewSection && currentSection.content) {
+            sections.push({
+              ...currentSection,
+              type: this.detectSectionType(currentSection.content, item.fontSize)
+            });
+
+            currentSection = {
+              type: 'paragraph',
+              content: '',
+              pageNumber: pageNum,
+              boundingBox: {
+                x: item.x,
+                y: item.y,
+                width: 0,
+                height: 0,
+              }
+            };
+          }
+
+          // Add text to current section
+          if (currentSection.content) {
+            currentSection.content += ' ';
+          }
+          currentSection.content += item.text.trim();
+
+          // Update bounding box
+          if (currentSection.boundingBox) {
+            currentSection.boundingBox.width = Math.max(
+              currentSection.boundingBox.width,
+              item.x + (item.text.length * item.fontSize * 0.6) - currentSection.boundingBox.x
+            );
+            currentSection.boundingBox.height = Math.max(
+              currentSection.boundingBox.height,
+              item.y - currentSection.boundingBox.y
+            );
+          }
+
+          lastY = item.y;
+          lastFontSize = item.fontSize;
+        });
+
+        // Add last section of the page
+        if (currentSection.content) {
           sections.push(currentSection);
-          currentSection = {
-            type: "paragraph",
-            content: "",
-            pageNumber: pageNum,
-          };
         }
-      });
-
-      if (currentSection.content) {
-        sections.push(currentSection);
       }
-    }
 
-    return {
-      documentId: crypto.randomUUID(),
-      filename: file.name,
-      totalPages,
-      sections,
-      metadata: {
-        creationDate: new Date().toISOString(),
-      },
-    };
+      const metadata = await pdf.getMetadata().catch(() => ({}));
+
+      return {
+        documentId: crypto.randomUUID(),
+        filename: file.name,
+        totalPages,
+        sections: sections.filter(section => section.content.trim().length > 0),
+        metadata: {
+          title: metadata.info?.Title || file.name,
+          author: metadata.info?.Author,
+          creationDate: metadata.info?.CreationDate,
+          modificationDate: metadata.info?.ModDate,
+        }
+      };
+    } catch (error) {
+      console.error('Error analyzing PDF:', error);
+      throw new Error('Failed to analyze PDF document. Please ensure it is a valid PDF file.');
+    }
+  }
+
+  private detectSectionType(content: string, fontSize: number): 'heading' | 'paragraph' | 'list' {
+    if (content.length < 50 && fontSize > 14) {
+      return 'heading';
+    }
+    if (content.trim().startsWith('•') || content.trim().match(/^\d+\./)) {
+      return 'list';
+    }
+    return 'paragraph';
   }
 }
