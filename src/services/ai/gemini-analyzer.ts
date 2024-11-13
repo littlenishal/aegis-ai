@@ -1,4 +1,7 @@
+// src/services/ai/gemini-analyzer.ts
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import { DocumentAnalysis } from '@/types/document';
+import { ComplianceReport, ComplianceIssue } from '@/types/compliance';
 
 export class GeminiAnalyzer {
   private genAI: GoogleGenerativeAI;
@@ -9,7 +12,7 @@ export class GeminiAnalyzer {
     this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
   }
 
-  private async generatePrompt(doc: DocumentAnalysis): string {
+  private async generatePrompt(doc: DocumentAnalysis): Promise<string> {
     return `Analyze this personal loan document for regulatory compliance:
 
 Document: ${doc.filename}
@@ -66,7 +69,7 @@ Format the response as JSON matching this structure:
       const lowSeverity = issues.filter(i => i.severity === 'low').length;
 
       // Group issues by category
-      const categoryCount = issues.reduce((acc: any, issue) => {
+      const categoryCount = issues.reduce((acc: Record<string, number>, issue) => {
         acc[issue.category] = (acc[issue.category] || 0) + 1;
         return acc;
       }, {});
@@ -86,12 +89,12 @@ Format the response as JSON matching this structure:
         },
         categories: Object.entries(categoryCount).map(([category, count]) => ({
           category,
-          issues: count as number
+          issues: count
         }))
       };
     } catch (error) {
       console.error('AI analysis failed:', error);
-      throw error;
+      throw new Error('Failed to analyze document with AI. Please try again.');
     }
   }
 }
