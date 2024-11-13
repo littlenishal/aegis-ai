@@ -77,6 +77,7 @@ Provide the response as a valid JSON object (not in a code block) matching this 
       let analysis: { issues: ComplianceIssue[] };
 
       try {
+        jsonString = JSON.parse(response.text());
         jsonString = this.cleanJsonResponse(response.text());
         analysis = JSON.parse(jsonString);
       } catch (parseError) {
