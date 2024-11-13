@@ -54,47 +54,58 @@ Format the response as JSON matching this structure:
 }`;
   }
 
-  async analyzeDocument(doc: DocumentAnalysis): Promise<ComplianceReport> {
-    try {
-      const prompt = await this.generatePrompt(doc);
-      const result = await this.model.generateContent(prompt);
-      const response = result.response;
-      const analysis = JSON.parse(response.text());
+async analyzeDocument(doc: DocumentAnalysis): Promise<ComplianceReport> {
+  try {
+    const prompt = await this.generatePrompt(doc);
+    const result = await this.model.generateContent(prompt);
+    const response = result.response;
+    const analysis = JSON.parse(response.text());
 
-      const issues: ComplianceIssue[] = analysis.issues;
+    const issues: ComplianceIssue[] = analysis.issues;
 
-      // Calculate statistics
-      const highSeverity = issues.filter(i => i.severity === 'high').length;
-      const mediumSeverity = issues.filter(i => i.severity === 'medium').length;
-      const lowSeverity = issues.filter(i => i.severity === 'low').length;
+    // Calculate statistics
+    const highSeverity = issues.filter(i => i.severity === 'high').length;
+    const mediumSeverity = issues.filter(i => i.severity === 'medium').length;
+    const lowSeverity = issues.filter(i => i.severity === 'low').length;
 
-      // Group issues by category
-      const categoryCount = issues.reduce((acc: Record<string, number>, issue) => {
-        acc[issue.category] = (acc[issue.category] || 0) + 1;
-        return acc;
-      }, {});
+    // Group issues by category
+    const categoryCount = issues.reduce((acc: Record<string, number>, issue) => {
+      acc[issue.category] = (acc[issue.category] || 0) + 1;
+      return acc;
+    }, {});
 
-      return {
-        analysis_id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        filename: doc.filename,
-        document_type: 'Personal Loan Agreement',
-        issues,
-        summary: {
-          total_issues: issues.length,
-          high_severity: highSeverity,
-          medium_severity: mediumSeverity,
-          low_severity: lowSeverity,
-          compliance_score: Math.max(100 - (highSeverity * 10 + mediumSeverity * 5 + lowSeverity * 2), 0)
-        },
-        categories: Object.entries(categoryCount).map(([category, count]) => ({
-          category,
-          issues: count
-        }))
-      };
-    } catch (error) {
-      console.error('AI analysis failed:', error);
-      throw new Error('Failed to analyze document with AI. Please try again.');
+    return {
+      analysis_id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      filename: doc.filename,
+      document_type: 'Personal Loan Agreement',
+      issues,
+      summary: {
+        total_issues: issues.length,
+        high_severity: highSeverity,
+        medium_severity: mediumSeverity,
+        low_severity: lowSeverity,
+        compliance_score: Math.max(100 - (highSeverity * 10 + mediumSeverity * 5 + lowSeverity * 2), 0)
+      },
+      categories: Object.entries(categoryCount).map(([category, count]) => ({
+        category,
+        issues: count
+      }))
+    };
+  } catch (error) {
+    console.error('AI analysis failed:', error);
+
+    if (error instanceof Error && error.message.includes('Request failed with status code')) {
+        throw new Error('Network error: Unable to connect to the AI service.');
+      } else if (error instanceof Error && error.message.includes('API rate limit exceeded')) {
+        throw new Error('API rate limit exceeded. Please try again later.');
+      } else if (error instanceof Error && error.message.includes('Invalid API key')) {
+        throw new Error('Invalid API key. Please check your API key settings.');
+      } else if (error instanceof SyntaxError) {
+        throw new Error('Invalid response format. Please try again.');
+      } else {
+        throw new Error('Failed to analyze document with AI. Please try again.');
+        }
+      }
     }
-  }
 }
