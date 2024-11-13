@@ -58,7 +58,7 @@ Format the response as JSON matching this structure:
     try {
       const prompt = await this.generatePrompt(doc);
       const result = await this.model.generateContent(prompt);
-      const response = await result.response;
+      const response = result.response;
       const analysis = JSON.parse(response.text());
 
       const issues: ComplianceIssue[] = analysis.issues;
