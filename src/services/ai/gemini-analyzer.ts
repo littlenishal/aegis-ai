@@ -71,58 +71,56 @@ Provide the response as a valid JSON object (not in a code block) matching this 
       const prompt = await this.generatePrompt(doc);
       const result = await this.model.generateContent(prompt);
       const response = result.response;
+      const rawText = response.text();
 
-      // Clean and parse the response
-      let jsonString: string;
-      let analysis: { issues: ComplianceIssue[] };
+      // Debug log the raw response
+      console.debug('Raw response:', rawText);
 
       try {
-        jsonString = JSON.parse(response.text());
-        jsonString = this.cleanJsonResponse(response.text());
-        analysis = JSON.parse(jsonString);
+        const cleanedJson = this.cleanJsonResponse(rawText);
+        console.debug('Cleaned JSON string:', cleanedJson);
+        const analysis = JSON.parse(cleanedJson) as { issues: ComplianceIssue[] };
+
+        // Validate issues array
+        if (!Array.isArray(analysis.issues)) {
+          throw new Error('Invalid response format: issues is not an array');
+        }
+
+        const issues = analysis.issues;
+
+        // Calculate statistics
+        const highSeverity = issues.filter(i => i.severity === 'high').length;
+        const mediumSeverity = issues.filter(i => i.severity === 'medium').length;
+        const lowSeverity = issues.filter(i => i.severity === 'low').length;
+
+        // Group issues by category
+        const categoryCount = issues.reduce((acc: Record<string, number>, issue) => {
+          acc[issue.category] = (acc[issue.category] || 0) + 1;
+          return acc;
+        }, {});
+
+        return {
+          analysis_id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          filename: doc.filename,
+          document_type: 'Personal Loan Agreement',
+          issues,
+          summary: {
+            total_issues: issues.length,
+            high_severity: highSeverity,
+            medium_severity: mediumSeverity,
+            low_severity: lowSeverity,
+            compliance_score: Math.max(100 - (highSeverity * 10 + mediumSeverity * 5 + lowSeverity * 2), 0)
+          },
+          categories: Object.entries(categoryCount).map(([category, count]) => ({
+            category,
+            issues: count
+          }))
+        };
       } catch (parseError) {
         console.error('JSON parsing failed:', parseError);
-        console.debug('Raw response:', response.text());
-        console.debug('Cleaned JSON string:', jsonString);
         throw new Error('Failed to parse AI response format');
       }
-
-      const issues: ComplianceIssue[] = analysis.issues;
-
-      // Validate issues array
-      if (!Array.isArray(issues)) {
-        throw new Error('Invalid response format: issues is not an array');
-      }
-
-      // Calculate statistics
-      const highSeverity = issues.filter(i => i.severity === 'high').length;
-      const mediumSeverity = issues.filter(i => i.severity === 'medium').length;
-      const lowSeverity = issues.filter(i => i.severity === 'low').length;
-
-      // Group issues by category
-      const categoryCount = issues.reduce((acc: Record<string, number>, issue) => {
-        acc[issue.category] = (acc[issue.category] || 0) + 1;
-        return acc;
-      }, {});
-
-      return {
-        analysis_id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        filename: doc.filename,
-        document_type: 'Personal Loan Agreement',
-        issues,
-        summary: {
-          total_issues: issues.length,
-          high_severity: highSeverity,
-          medium_severity: mediumSeverity,
-          low_severity: lowSeverity,
-          compliance_score: Math.max(100 - (highSeverity * 10 + mediumSeverity * 5 + lowSeverity * 2), 0)
-        },
-        categories: Object.entries(categoryCount).map(([category, count]) => ({
-          category,
-          issues: count
-        }))
-      };
     } catch (error) {
       console.error('AI analysis failed:', error);
 
