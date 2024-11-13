@@ -60,7 +60,7 @@ export class PDFService {
         let lastFontSize: number | null = null;
 
         textItems.forEach((item) => {
-          if (this.shouldCreateNewSection(item, lastY, lastFontSize)) {
+          if (this.shouldCreateNewSection(item, lastY, lastFontSize, item.y)) {
             if (currentSection.content) {
               sections.push(this.finalizeSection(currentSection, item.fontSize));
             }
