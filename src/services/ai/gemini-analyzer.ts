@@ -1,10 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { DocumentAnalysis } from '@/types/document';
-import { ComplianceReport, ComplianceIssue } from '@/types/compliance';
+import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
 export class GeminiAnalyzer {
   private genAI: GoogleGenerativeAI;
-  private model: any;
+  private model: GenerativeModel;
 
   constructor(apiKey: string) {
     this.genAI = new GoogleGenerativeAI(apiKey);

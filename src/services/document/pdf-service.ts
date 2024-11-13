@@ -1,5 +1,5 @@
 import { DocumentAnalysis, DocumentSection } from "@/types/document";
-import * as pdfjs from "pdfjs-dist";
+import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 
 export class PDFService {
   async analyzePDF(file: File): Promise<DocumentAnalysis> {
@@ -14,9 +14,13 @@ export class PDFService {
       const content = await page.getTextContent();
 
       // Process text content into structured sections
-      const textItems = content.items.map((item: any) => ({
+      interface PDFTextItem extends TextItem {
+        str: string;
+        transform: number[];
+      }
+      const textItems = content.items.map((item: PDFTextItem) => ({
         text: item.str,
-        y: item.transform[5], // Vertical position
+        y: item.transform[5],
       }));
 
       // Group text into sections based on positioning and content

@@ -62,7 +62,7 @@ export function ReportView({ report }: ReportViewProps) {
                 <p><strong>Category:</strong> {issue.category}</p>
                 <p><strong>Regulation:</strong> {issue.regulation_reference}</p>
                 <p><strong>Location:</strong> Page {issue.location.pageNumber}</p>
-                <p className="text-gray-600 italic">"{issue.location.excerpt}"</p>
+                <p className="text-gray-600 italic">&ldquo;{issue.location.excerpt}&rdquo;</p>
                 <p><strong>Suggested Fix:</strong> {issue.suggested_fix}</p>
               </div>
             </div>
