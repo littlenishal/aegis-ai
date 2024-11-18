@@ -15,6 +15,8 @@ export interface ComplianceReport {
   summary: {
     total_issues: number;
     high_severity: number;
+    medium_severity: number;
+    low_severity: number;
     compliance_score: number;
   };
   categories: string[];
