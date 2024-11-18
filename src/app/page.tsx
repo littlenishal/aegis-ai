@@ -63,7 +63,7 @@ export default function Home() {
     setError(null);
 
     try {
-      const pdfService = new PDFService();
+      const pdfService = PDFService();
       const documentAnalysis = await pdfService.analyzePDF(file);
 
       const geminiAnalyzer = new GeminiAnalyzer(
