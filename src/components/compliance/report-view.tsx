@@ -1,6 +1,6 @@
 import { ComplianceReport } from '@/types/compliance';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle, Info, CheckCircle2 } from 'lucide-react';
 
