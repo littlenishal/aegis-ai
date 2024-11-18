@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import ComplianceWorkspace from '@/components/compliance/workspace';
 import { ComplianceReport } from '@/types/compliance';
-import { PDFService } from '@/services/document/pdf-service';
-import { GeminiAnalyzer } from '@/services/ai/gemini-analyzer';
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
