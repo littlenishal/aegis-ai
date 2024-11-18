@@ -2,6 +2,7 @@ import { getDocument } from 'pdfjs-dist/legacy/build/pdf';
 import { GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
+import { DocumentAnalysis, DocumentSection } from '@/types/document';
 
 let isWorkerInitialized = false;
 
