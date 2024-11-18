@@ -31,4 +31,5 @@ export interface ComplianceReport {
       excerpt: string;
     };
   }[];
+  analysis_id: string;
 }
