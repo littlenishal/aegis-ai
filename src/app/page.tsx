@@ -1,10 +1,24 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import ComplianceWorkspace from '@/components/compliance/workspace';
-import { PDFService } from '@/services/document/pdf-service';
-import { GeminiAnalyzer } from '@/services/ai/gemini-analyzer';
 import { ComplianceReport } from '@/types/compliance';
+
+// Dynamic imports to prevent SSR issues
+const ComplianceWorkspace = dynamic(
+  () => import('@/components/compliance/workspace'),
+  { ssr: false }
+);
+
+const PDFService = dynamic(
+  () => import('@/services/document/pdf-service').then(mod => mod.PDFService),
+  { ssr: false }
+);
+
+const GeminiAnalyzer = dynamic(
+  () => import('@/services/ai/gemini-analyzer').then(mod => mod.GeminiAnalyzer),
+  { ssr: false }
+);
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -33,5 +47,14 @@ export default function Home() {
     }
   };
 
-  return <ComplianceWorkspace onFileSelected={handleFileSelected} loading={loading} error={error} report={report} />;
+  return (
+    <main className="min-h-screen">
+      <ComplianceWorkspace 
+        onFileSelected={handleFileSelected}
+        loading={loading}
+        error={error}
+        report={report}
+      />
+    </main>
+  );
 }
