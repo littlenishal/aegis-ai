@@ -12,20 +12,21 @@ export interface ComplianceIssue {
 }
 
 export interface ComplianceReport {
-  analysis_id: string;
-  timestamp: string;
-  filename: string;
-  document_type: string;
-  issues: ComplianceIssue[];
   summary: {
     total_issues: number;
     high_severity: number;
-    medium_severity: number;
-    low_severity: number;
     compliance_score: number;
   };
-  categories: {
+  categories: string[];
+  issues: {
+    severity: 'high' | 'medium' | 'low';
+    description: string;
     category: string;
-    issues: number;
+    regulation_reference: string;
+    suggested_fix: string;
+    location: {
+      pageNumber: number;
+      excerpt: string;
+    };
   }[];
 }
