@@ -10,13 +10,44 @@ const ComplianceWorkspace = dynamic(
   { ssr: false }
 );
 
+const PDFAnalyzerComponent: React.FC<{ file: File }> = ({ file }) => {
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const analyzePdf = async () => {
+      try {
+        const pdfService = new PDFService();
+        const result = await pdfService.analyzePDF(file);
+        setAnalysisResult(result);
+      } catch (err) {
+        console.error('Error analyzing PDF:', err);
+        setError('Error analyzing PDF');
+      }
+    };
+    if (file) {
+      analyzePdf();
+    }
+  }, [file]);
+
+  return (
+    <div>
+      {error && <p>{error}</p>}
+      {analysisResult && <p>Analysis Result: {JSON.stringify(analysisResult)}</p>}
+    </div>
+  );
+};
+
 const PDFService = dynamic(
   () => import('@/services/document/pdf-service').then(mod => mod.PDFService),
   { ssr: false }
 );
 
 const GeminiAnalyzer = dynamic(
-  () => import('@/services/ai/gemini-analyzer').then(mod => mod.GeminiAnalyzer),
+  () => {
+    const Analyzer = new (import('@/services/ai/gemini-analyzer').then(mod => mod.GeminiAnalyzer))();
+    return Analyzer;
+  },
   { ssr: false }
 );
 
@@ -24,8 +55,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<ComplianceReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // State for selected file
 
   const handleFileSelected = async (file: File) => {
+    setSelectedFile(file); // Update the selected file state
     setLoading(true);
     setError(null);
 
@@ -55,6 +88,7 @@ export default function Home() {
         error={error}
         report={report}
       />
+      {selectedFile && <PDFAnalyzerComponent file={selectedFile} />} {/* Render PDFAnalyzerComponent if a file is selected */}
     </main>
   );
 }
