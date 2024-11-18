@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ComplianceReport } from '@/types/compliance';
 
 // Dynamic imports to prevent SSR issues
