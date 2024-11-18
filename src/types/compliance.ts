@@ -19,7 +19,7 @@ export interface ComplianceReport {
     low_severity: number;
     compliance_score: number;
   };
-  categories: string[];
+  categories: { category: string; issues: number }[];
   issues: {
     severity: 'high' | 'medium' | 'low';
     description: string;
