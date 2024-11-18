@@ -1,6 +1,7 @@
+// types/compliance.ts
 export interface ComplianceIssue {
-  severity: "high" | "medium" | "low";
-  category: "TILA" | "ESIGN" | "UDAAP" | "ECOA";
+  severity: 'high' | 'medium' | 'low';
+  category: 'TILA' | 'ESIGN' | 'UDAAP' | 'ECOA';
   description: string;
   regulation_reference: string;
   suggested_fix: string;
@@ -11,21 +12,25 @@ export interface ComplianceIssue {
   };
 }
 
+export interface ComplianceReportSummary {
+  total_issues: number;
+  high_severity: number;
+  medium_severity: number;
+  low_severity: number;
+  compliance_score: number;
+}
+
+export interface ComplianceCategory {
+  category: string;
+  issues: number;
+}
+
 export interface ComplianceReport {
   analysis_id: string;
-  timestamp: string;
+  timestamp: string; // Added timestamp property
   filename: string;
   document_type: string;
   issues: ComplianceIssue[];
-  summary: {
-    total_issues: number;
-    high_severity: number;
-    medium_severity: number;
-    low_severity: number;
-    compliance_score: number;
-  };
-  categories: {
-    category: string;
-    issues: number;
-  }[];
+  summary: ComplianceReportSummary;
+  categories: ComplianceCategory[];
 }
