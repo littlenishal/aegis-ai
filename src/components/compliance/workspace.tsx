@@ -87,6 +87,7 @@ export default function ComplianceWorkspace({
       <div className="w-1/2 p-6">
         <Card className="h-full bg-white">
           <CardHeader className="border-b px-6 py-4">
+          {!report && (  
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid grid-cols-3 gap-4">
                 <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -94,6 +95,7 @@ export default function ComplianceWorkspace({
                 <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
               </TabsList>
             </Tabs>
+          )}
           </CardHeader>
           {report && <ReportView report={report} />}
         </Card>
