@@ -1,14 +1,17 @@
-// src/services/document/pdf-service.ts
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 import { DocumentAnalysis, DocumentSection } from '@/types/document';
 
-// Initialize PDF.js worker only on client side
-if (typeof window !== 'undefined') {
-  const pdfjsVersion = '3.11.174';
-  GlobalWorkerOptions.workerSrc = 
-    `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
-}
+let isWorkerInitialized = false;
+
+const initializeWorker = () => {
+  if (!isWorkerInitialized && typeof window !== 'undefined') {
+    const pdfjsVersion = '3.11.174';
+    GlobalWorkerOptions.workerSrc = 
+      `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
+    isWorkerInitialized = true;
+  }
+};
 
 interface PDFTextItem extends TextItem {
   str: string;
@@ -33,13 +36,20 @@ interface PDFMetadata {
 export class PDFService {
   async analyzePDF(file: File): Promise<DocumentAnalysis> {
     if (typeof window === 'undefined') {
-      throw new Error('PDF analysis is only available in browser environment');
+      throw new Error('PDF analysis requires browser environment');
     }
 
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await getDocument({ data: arrayBuffer }).promise;
+    initializeWorker();
 
+    try {
+      const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+
+      const pdf = await getDocument(new Uint8Array(arrayBuffer)).promise;
       const sections: DocumentSection[] = [];
       const totalPages = pdf.numPages;
 
@@ -47,7 +57,6 @@ export class PDFService {
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent() as PDFPageContent;
 
-        // Process text content into structured sections
         const textItems = content.items.map((item: PDFTextItem) => ({
           text: item.str,
           y: item.transform[5],
@@ -59,7 +68,7 @@ export class PDFService {
         let lastY: number | null = null;
         let lastFontSize: number | null = null;
 
-        textItems.forEach((item) => {
+        for (const item of textItems) {
           if (this.shouldCreateNewSection(lastY, lastFontSize, item.y, item.fontSize)) {
             if (currentSection.content) {
               sections.push(this.finalizeSection(currentSection, item.fontSize));
@@ -70,7 +79,7 @@ export class PDFService {
           this.addTextToSection(currentSection, item);
           lastY = item.y;
           lastFontSize = item.fontSize;
-        });
+        }
 
         if (currentSection.content) {
           sections.push(currentSection);
@@ -122,12 +131,8 @@ export class PDFService {
     itemY: number,
     itemFontSize: number
   ): boolean {
-    if (lastY !== null) {
-      // Explicitly check if lastFontSize is not null before using it.
-      return (Math.abs(itemY - lastY) > 20 || (lastFontSize !== null && itemFontSize > lastFontSize * 1.2));
-    } else {
-      return false;
-    }
+    if (lastY === null || lastFontSize === null) return false;
+    return Math.abs(itemY - lastY) > 20 || itemFontSize > lastFontSize * 1.2;
   }
 
   private addTextToSection(
